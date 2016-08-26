@@ -147,8 +147,6 @@ def prettyDataPrint(dataList, sortBy=None, reverse=False):
     if not sortBy:
         sortBy = sortByTicker
 
-    print sortBy
-
     # Sort the list of dictionary by specific key
     dataList.sort(key=sortBy, reverse=reverse)
     # Print the data in each disctionary to the output
