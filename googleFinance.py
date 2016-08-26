@@ -57,7 +57,64 @@ def parseCsv(csvFile):
     return tickerList
 
 
-def prettyDataPrint(dataList, sortBy='Ticker', reverse=False):
+def sortByTicker(stockDict):
+    return stockDict['Ticker']
+
+
+def sortByOpen(stockDict):
+    try:
+        return float(stockDict['Open'])
+    except:
+        return stockDict['Open']
+
+
+def sortByMktCap(stockDict):
+    if 'M' in stockDict['Mkt cap']:
+        return float(stockDict['Mkt cap'].replace('M', '')) * 1000000
+    elif 'B' in stockDict['Mkt cap']:
+        return float(stockDict['Mkt cap'].replace('B', '')) * 1000000000
+    else:
+        return float(stockDict['Mkt cap'])
+
+
+def sortByPe(stockDict):
+    try:
+        return float(stockDict['P/E'])
+    except:
+        return stockDict['P/E']
+
+
+def sortByDividend(stockDict):
+    try:
+        return float(stockDict['Dividend'])
+    except:
+        return stockDict['Dividend']
+
+
+def sortByYield(stockDict):
+    try:
+        return float(stockDict['Yield'])
+    except:
+        return stockDict['Yield']
+
+
+def sortByEps(stockDict):
+    try:
+        return float(stockDict['EPS'])
+    except:
+        return stockDict['EPS']
+
+
+def sortByShares(stockDict):
+    if 'M' in stockDict['Shares']:
+        return float(stockDict['Shares'].replace('M', '')) * 1000000
+    elif 'B' in stockDict['Shares']:
+        return float(stockDict['Shares'].replace('B', '')) * 1000000000
+    else:
+        return float(stockDict['Shares'])
+
+
+def prettyDataPrint(dataList, sortBy=None, reverse=False):
     print ""
     formatString = ""
     # The list of attributes that will be displayed
@@ -86,8 +143,14 @@ def prettyDataPrint(dataList, sortBy='Ticker', reverse=False):
     print "-" * len(textToPrint)
     print textToPrint
     print "-" * len(textToPrint)
+
+    if not sortBy:
+        sortBy = sortByTicker
+
+    print sortBy
+
     # Sort the list of dictionary by specific key
-    dataList.sort(key=operator.itemgetter(sortBy), reverse=reverse)
+    dataList.sort(key=sortBy, reverse=reverse)
     # Print the data in each disctionary to the output
     for data in dataList:
         dataValue = []
@@ -105,19 +168,21 @@ def printStatus(total, counter):
 def sortByMapper(sortBy):
     # Map the sortBy to real keys
     if sortBy == "ticker":
-        return "Ticker"
+        return sortByTicker
     elif sortBy == "open":
-        return "Open"
+        return sortByOpen
     elif sortBy == "mktcap":
-        return "Mkt cap"
+        return sortByMktCap
+    elif sortBy == "pe":
+        return sortByPe
     elif sortBy == "dividend":
-        return "Dividend"
+        return sortByDividend
     elif sortBy == "yield":
-        return "Div. yield"
+        return sortByYield
     elif sortBy == "eps":
-        return "EPS"
+        return sortByEps
     elif sortBy == "shares":
-        return "Shares"
+        return sortByShares
 
 
 def main(tickerList, sortBy='ticker', reverse=False):
@@ -157,6 +222,8 @@ if __name__ == "__main__":
     # The string that will be displayed when help is initiated
     helpString = '''Usage:
 ./%s [options] tickers
+
+tickers\t\t\tThe list of tickers (Can be used with exchange - NASDAQ:GOOGL(recommended method))
 
 Options:
 -sort [option]\t\tSort table by (options: ticker, open, mktcap, pe, dividend, yield, eps, shares)
