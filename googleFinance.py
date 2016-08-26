@@ -5,6 +5,7 @@ from lxml import html
 
 
 def getDataFromGoogleFinance(ticker):
+    # Connect to the Google finance and get the basic info for specific ticker
     conn = httplib.HTTPSConnection("www.google.com")
     conn.request("GET", "/finance?q=%s" % ticker)
     response = conn.getresponse()
@@ -18,6 +19,7 @@ def getDataFromGoogleFinance(ticker):
 
 def parseResponse(response):
     htmlData = html.fromstring(response)
+    # Find element with class "snap-panel-and-plusone" which includes the table with the stock basic info
     divElement = htmlData.xpath('//div[@class="snap-panel-and-plusone"]')
     data = {}
     if len(divElement) == 1:
@@ -29,11 +31,14 @@ def parseResponse(response):
                 lineElements = line.getchildren()
                 for column in lineElements:
                     dataValue = column.text
+                    # Store the info in each line of the table to the dictionary
+                    # The google uses key and val elements in the HTML output
                     if dataValue:
                         if 'key' in column.values():
                             dataKey = column.text.strip()
                         elif 'val' in column.values():
                             dataValue = column.text.strip()
+                # Separate dividend and dividend yield for better output
                 if dataKey and dataValue:
                     if dataKey == 'Div/yield':
                         try:
@@ -46,15 +51,16 @@ def parseResponse(response):
                         data[dataKey] = dataValue
     return data
 
-
+# Currently not supported
 def parseCsv(csvFile):
-    tickerList = ['DIA', 'EZJ']
+    tickerList = []
     return tickerList
 
 
 def prettyDataPrint(dataList, sortBy='Ticker', reverse=False):
     print ""
     formatString = ""
+    # The list of attributes that will be displayed
     attributes = ('Ticker',
                   'Range',
                   '52 week',
@@ -68,17 +74,21 @@ def prettyDataPrint(dataList, sortBy='Ticker', reverse=False):
                   'Shares',
                   'Beta',
                   'Inst. own')
+    # Find the max len for each columns to prepare the format for the output
     for attribute in attributes:
         getAttribute = operator.itemgetter(attribute)
         attributeMaxLen = len(attribute)
         for i in dataList:
             attributeMaxLen = max(len(getAttribute(i)), attributeMaxLen)
         formatString += "{:<%s} | " % str(attributeMaxLen + 2)
+    # Print table header
     textToPrint = formatString.format(*attributes)
     print "-" * len(textToPrint)
     print textToPrint
     print "-" * len(textToPrint)
+    # Sort the list of dictionary by specific key
     dataList.sort(key=operator.itemgetter(sortBy), reverse=reverse)
+    # Print the data in each disctionary to the output
     for data in dataList:
         dataValue = []
         for attribute in attributes:
@@ -88,11 +98,12 @@ def prettyDataPrint(dataList, sortBy='Ticker', reverse=False):
 
 def printStatus(total, counter):
     percentage = 100 * counter / total
-    sys.stdout.write("\rProgress: [%s] %d%%" % ("{:<20}".format("=" * (percentage/5)), percentage))
+    sys.stdout.write("\rProgress: [%s] %d%%" % ("{:<20}".format("=" * (percentage / 5)), percentage))
     sys.stdout.flush()
 
 
 def sortByMapper(sortBy):
+    # Map the sortBy to real keys
     if sortBy == "ticker":
         return "Ticker"
     elif sortBy == "open":
@@ -112,6 +123,7 @@ def sortByMapper(sortBy):
 def main(tickerList, sortBy='ticker', reverse=False):
     failedTickers = []
     dataList = []
+    # Variables for printing the status bar
     numberOfTickers = len(tickerList)
     counter = 0
     printStatus(numberOfTickers, counter)
@@ -142,6 +154,7 @@ if __name__ == "__main__":
 
     fileName = sys.argv.pop(0)
 
+    # The string that will be displayed when help is initiated
     helpString = '''Usage:
 ./%s [options] tickers
 
