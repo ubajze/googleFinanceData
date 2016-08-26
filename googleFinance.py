@@ -93,9 +93,9 @@ def sortByDividend(stockDict):
 
 def sortByYield(stockDict):
     try:
-        return float(stockDict['Yield'])
+        return float(stockDict['Div. yield'])
     except:
-        return stockDict['Yield']
+        return stockDict['Div. yield']
 
 
 def sortByEps(stockDict):
