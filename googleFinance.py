@@ -1,7 +1,7 @@
 import httplib
 import sys
 import operator
-from lxml import html
+from lxml import html, etree
 
 
 def getDataFromGoogleFinance(ticker):
@@ -49,6 +49,12 @@ def parseResponse(response):
                             data['Div. yield'] = '-'
                     else:
                         data[dataKey] = dataValue
+    # Find name
+    divElement = htmlData.xpath('//title')
+    try:
+        data['Name'] = divElement[0].text_content().split(':')[0]
+    except:
+        data['Name'] = ''
     return data
 
 # Currently not supported
@@ -59,6 +65,10 @@ def parseCsv(csvFile):
 
 def sortByTicker(stockDict):
     return stockDict['Ticker']
+
+
+def sortByName(stockDict):
+    return stockDict['Name']
 
 
 def sortByOpen(stockDict):
@@ -114,23 +124,27 @@ def sortByShares(stockDict):
         return float(stockDict['Shares'])
 
 
-def prettyDataPrint(dataList, sortBy=None, reverse=False):
+def prettyDataPrint(dataList, sortBy=None, reverse=False, columns=None):
     print ""
     formatString = ""
     # The list of attributes that will be displayed
-    attributes = ('Ticker',
-                  'Range',
-                  '52 week',
-                  'Open',
-                  'Vol / Avg.',
-                  'Mkt cap',
-                  'P/E',
-                  'Dividend',
-                  'Div. yield',
-                  'EPS',
-                  'Shares',
-                  'Beta',
-                  'Inst. own')
+    if columns:
+        attributes = tuple(columns)
+    else:
+        attributes = ('Ticker',
+                      'Name',
+                      'Range',
+                      '52 week',
+                      'Open',
+                      'Vol / Avg.',
+                      'Mkt cap',
+                      'P/E',
+                      'Dividend',
+                      'Div. yield',
+                      'EPS',
+                      'Shares',
+                      'Beta',
+                      'Inst. own')
     # Find the max len for each columns to prepare the format for the output
     for attribute in attributes:
         getAttribute = operator.itemgetter(attribute)
@@ -167,6 +181,8 @@ def sortByMapper(sortBy):
     # Map the sortBy to real keys
     if sortBy == "ticker":
         return sortByTicker
+    elif sortBy == "name":
+        return sortByName
     elif sortBy == "open":
         return sortByOpen
     elif sortBy == "mktcap":
@@ -183,7 +199,42 @@ def sortByMapper(sortBy):
         return sortByShares
 
 
-def main(tickerList, sortBy='ticker', reverse=False):
+def translateColumns(columns):
+    columnsList = []
+    if columns:
+        for column in columns:
+            if column == 'ticker':
+                columnsList.append('Ticker')
+            if column == 'name':
+                columnsList.append('Name')
+            if column == 'range':
+                columnsList.append('Range')
+            if column == '52week':
+                columnsList.append('52 week')
+            if column == 'open':
+                columnsList.append('Open')
+            if column == 'vol':
+                columnsList.append('Vol / Avg.')
+            if column == 'mktcap':
+                columnsList.append('Mkt cap')
+            if column == 'pe':
+                columnsList.append('P/E')
+            if column == 'dividend':
+                columnsList.append('Dividend')
+            if column == 'yield':
+                columnsList.append('Div. yield')
+            if column == 'eps':
+                columnsList.append('EPS')
+            if column == 'shares':
+                columnsList.append('Shares')
+            if column == 'beta':
+                columnsList.append('Beta')
+            if column == 'own':
+                columnsList.append('Inst. own')
+    return columnsList
+
+
+def main(tickerList, sortBy='ticker', reverse=False, columns=None):
     failedTickers = []
     dataList = []
     # Variables for printing the status bar
@@ -203,7 +254,8 @@ def main(tickerList, sortBy='ticker', reverse=False):
         counter += 1
         printStatus(numberOfTickers, counter)
     sortBy = sortByMapper(sortBy)
-    prettyDataPrint(dataList, sortBy, reverse)
+    columns = translateColumns(columns)
+    prettyDataPrint(dataList, sortBy, reverse, columns)
     print ""
     for ticker in failedTickers:
         print "Unable to get data for ticker %s." % ticker
@@ -224,9 +276,12 @@ if __name__ == "__main__":
 tickers\t\t\tThe list of tickers (Can be used with exchange - NASDAQ:GOOGL(recommended method))
 
 Options:
--sort [option]\t\tSort table by (options: ticker, open, mktcap, pe, dividend, yield, eps, shares)
+-sort [option]\t\tSort table by (options: ticker, name, open, mktcap, pe, dividend, yield, eps, shares)
 -rsort [option]\t\tSame as sort but descending
--csv [file]\t\tSpecify CSV export from Google Finance portfolio (you do not need to specify tickers in this case - in case you pass both options, tickers will be merged)
+-columns [option]\tList only specified columns (options: ticker, name, range, 52week, open, vol, mktcap,
+\t\t\tpe, dividend, yield, eps, shares, beta, own; use ':' to separate columns)
+-csv [file]\t\tSpecify CSV export from Google Finance portfolio (you do not need to specify tickers
+\t\t\tin this case - in case you pass both options, tickers will be merged)
 -help\t\t\tPrint this help
     ''' % (fileName)
 
@@ -266,6 +321,15 @@ Options:
         except:
             printHelp = True
 
+    columns = None
+    if "-columns" in sys.argv:
+        try:
+            columns = sys.argv[sys.argv.index("-columns") + 1].split(':')
+            sys.argv.pop(sys.argv.index("-columns") + 1)
+            sys.argv.pop(sys.argv.index("-columns"))
+        except:
+            pass
+
     if len(sys.argv) == 0:
         printHelp = True
 
@@ -275,4 +339,4 @@ Options:
 
     tickerList += sys.argv
 
-    main(tickerList, sortBy, reverse)
+    main(tickerList, sortBy, reverse, columns)
